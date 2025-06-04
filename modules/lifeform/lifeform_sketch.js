@@ -1,7 +1,8 @@
 /** @format */
-const MAX_ENERGY = 300; // frames before a lifeform dies without food
-const NUM_LIFEFORMS = 20;
-const MUTATION_RATE = 0.1; // mutation rate for offspring brains
+
+const MAX_ENERGY = 400; // frames before a lifeform dies without food
+const NUM_LIFEFORMS = 40;
+const MUTATION_RATE = 0.09; // mutation rate for offspring brains
 const MAX_SPEED = 2.5; // maximum movement speed
 // inputs: normalized food vector (dx, dy), current speed, angle difference
 // to the closest food, normalized distance, current energy level, and
@@ -21,8 +22,8 @@ class Lifeform {
 		this.pos = pos ? pos.copy() : createVector(random(width), random(height));
 		this.angle = angle !== undefined ? angle : random(TWO_PI);
 		this.speed = random(MAX_SPEED);
-		this.size = 18;
 		this.energy = MAX_ENERGY;
+		this.size = map(this.energy, 0, MAX_ENERGY, 10, 26);
 		this.generation = generation;
 		this.ancestorId = ancestorId !== undefined ? ancestorId : nextAncestorId++;
 		if (!ancestorGenerations[this.ancestorId] || ancestorGenerations[this.ancestorId] < this.generation) {
@@ -73,7 +74,11 @@ class Lifeform {
 		if (this.pos.x > width) this.pos.x = 0;
 		if (this.pos.y < 0) this.pos.y = height;
 		if (this.pos.y > height) this.pos.y = 0;
-		this.energy--;
+
+		const drain = 0.05 + this.speed; // slower drain when stationary, faster when moving
+		this.energy -= drain;
+		this.energy = max(this.energy, 0);
+		this.size = map(this.energy, 0, MAX_ENERGY, 10, 26);
 	}
 
 	show() {
@@ -88,12 +93,13 @@ class Lifeform {
 		vertex(0, -this.size * 0.5);
 		endShape(CLOSE);
 		pop();
-		// display generation number above the lifeform
+		// display energy and generation above the lifeform
 		push();
 		fill(this.baseColor);
 		noStroke();
 		textAlign(CENTER, CENTER);
 		textSize(10);
+		text(Math.floor(this.energy), this.pos.x, this.pos.y - this.size - 10);
 		text('g' + this.generation, this.pos.x, this.pos.y - this.size);
 		pop();
 	}
@@ -102,6 +108,7 @@ class Lifeform {
 		const d = dist(this.pos.x, this.pos.y, food.pos.x, food.pos.y);
 		if (d < (this.size + food.size) / 2) {
 			this.energy = MAX_ENERGY;
+			this.size = map(this.energy, 0, MAX_ENERGY, 10, 26);
 			const r = min(red(this.baseColor) + 60, 255);
 			const g = min(green(this.baseColor) + 60, 255);
 			const b = min(blue(this.baseColor) + 60, 255);
