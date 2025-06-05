@@ -10,7 +10,15 @@
 		<script src="modules/nn.js"></script>
 	</head>
 	<body>
-		<div id="lifeform-sketch"></div>
-		<script src="modules/lifeform/lifeform_sketch.js"></script>
-	</body>
+                <label for="speed-slider">Simulation Speed:</label>
+                <input
+                        type="range"
+                        id="speed-slider"
+                        min="1"
+                        max="5"
+                        value="1"
+                />
+                <div id="lifeform-sketch"></div>
+                <script src="modules/lifeform/lifeform_sketch.js"></script>
+        </body>
 </html>
