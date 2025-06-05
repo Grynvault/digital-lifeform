@@ -1,9 +1,12 @@
 /** @format */
 
-const MAX_ENERGY = 400; // frames before a lifeform dies without food
+const BASE_ENERGY = 300; // base energy for a newly created lifeform
+const ENERGY_BONUS_PER_GEN = 10; // extra starting energy per generation
+const CANNIBAL_GEN_THRESHOLD = 30; // generations allowed to eat weaker lifeforms
+const MAX_ENERGY = BASE_ENERGY + 10 * ENERGY_BONUS_PER_GEN; // upper bound for energyconst NUM_LIFEFORMS = 50;
 const NUM_LIFEFORMS = 40;
-const MUTATION_RATE = 0.09; // mutation rate for offspring brains
-const MAX_SPEED = 2.5; // maximum movement speed
+const MUTATION_RATE = 0.1; // mutation rate for offspring brains
+const MAX_SPEED = 3.5; // maximum movement speed
 // inputs: normalized food vector (dx, dy), current speed, angle difference
 // to the closest food, normalized distance, current energy level, and
 // heading orientation (cos(angle), sin(angle))
@@ -16,14 +19,22 @@ let foods = [];
 let spawnCounter = 0;
 let foodSpawnInterval = 60; // spawn food every 60 frames
 const FOOD_PER_SPAWN = 3; // number of food items spawned each interval
+const MIN_FOOD_SIZE = 8;
+const MAX_FOOD_SIZE = 15;
+
+let speedSlider; // DOM slider to control simulation speed
+
+function startingEnergy(gen) {
+	return Math.min(MAX_ENERGY, BASE_ENERGY + ENERGY_BONUS_PER_GEN * (gen - 1));
+}
 
 class Lifeform {
 	constructor(brain, pos, angle, generation = 1, ancestorId) {
 		this.pos = pos ? pos.copy() : createVector(random(width), random(height));
 		this.angle = angle !== undefined ? angle : random(TWO_PI);
 		this.speed = random(MAX_SPEED);
-		this.energy = MAX_ENERGY;
-		this.size = map(this.energy, 0, MAX_ENERGY, 10, 26);
+		this.size = 18;
+		this.energy = startingEnergy(generation);
 		this.generation = generation;
 		this.ancestorId = ancestorId !== undefined ? ancestorId : nextAncestorId++;
 		if (!ancestorGenerations[this.ancestorId] || ancestorGenerations[this.ancestorId] < this.generation) {
@@ -103,12 +114,10 @@ class Lifeform {
 		text('g' + this.generation, this.pos.x, this.pos.y - this.size);
 		pop();
 	}
-
 	eat(food) {
 		const d = dist(this.pos.x, this.pos.y, food.pos.x, food.pos.y);
 		if (d < (this.size + food.size) / 2) {
-			this.energy = MAX_ENERGY;
-			this.size = map(this.energy, 0, MAX_ENERGY, 10, 26);
+			this.energy = startingEnergy(this.generation);
 			const r = min(red(this.baseColor) + 60, 255);
 			const g = min(green(this.baseColor) + 60, 255);
 			const b = min(blue(this.baseColor) + 60, 255);
@@ -118,6 +127,21 @@ class Lifeform {
 			const child = new Lifeform(childBrain, this.pos, this.angle, this.generation + 1, this.ancestorId);
 			lifeforms.push(child);
 			return true;
+		}
+		return false;
+	}
+
+	cannibalize(other) {
+		if (this.generation >= CANNIBAL_GEN_THRESHOLD && (this.generation > other.generation || this.energy > other.energy)) {
+			const d = dist(this.pos.x, this.pos.y, other.pos.x, other.pos.y);
+			if (d < (this.size + other.size) / 2) {
+				this.energy = Math.min(startingEnergy(this.generation) * 1.5, this.energy + startingEnergy(this.generation) * 0.5);
+				const childBrain = this.brain.copy();
+				childBrain.mutate(MUTATION_RATE);
+				lifeforms.push(new Lifeform(childBrain, this.pos, this.angle, this.generation + 1, this.ancestorId));
+				other.dispose();
+				return true;
+			}
 		}
 		return false;
 	}
@@ -134,7 +158,8 @@ class Lifeform {
 class Food {
 	constructor() {
 		this.pos = createVector(random(width), random(height));
-		this.size = 10;
+		this.size = random(MIN_FOOD_SIZE, MAX_FOOD_SIZE);
+		this.energyValue = map(this.size, MIN_FOOD_SIZE, MAX_FOOD_SIZE, MAX_ENERGY * 0.2, MAX_ENERGY);
 	}
 
 	show() {
@@ -147,14 +172,13 @@ class Food {
 function setup() {
 	const canv = createCanvas(600, 600);
 	canv.parent('lifeform-sketch');
+	speedSlider = document.getElementById('speed-slider');
 	for (let i = 0; i < NUM_LIFEFORMS; i++) {
 		lifeforms.push(new Lifeform());
 	}
 }
 
-function draw() {
-	background(30);
-
+function simulationStep() {
 	spawnCounter++;
 	if (spawnCounter >= foodSpawnInterval) {
 		for (let f = 0; f < FOOD_PER_SPAWN; f++) {
@@ -164,7 +188,6 @@ function draw() {
 	}
 
 	for (let i = foods.length - 1; i >= 0; i--) {
-		foods[i].show();
 		for (let j = lifeforms.length - 1; j >= 0; j--) {
 			if (lifeforms[j].eat(foods[i])) {
 				foods.splice(i, 1);
@@ -176,14 +199,28 @@ function draw() {
 	for (let j = lifeforms.length - 1; j >= 0; j--) {
 		const lf = lifeforms[j];
 		lf.update();
-		lf.show();
+		for (let k = lifeforms.length - 1; k >= 0; k--) {
+			if (j !== k && lf.cannibalize(lifeforms[k])) {
+				lifeforms.splice(k, 1);
+				if (k < j) j--;
+			}
+		}
 		if (lf.isDead()) {
 			lf.dispose();
 			lifeforms.splice(j, 1);
 		}
 	}
+}
 
-	// display stats for each ancestor lineage
+function renderSimulation() {
+	background(30);
+	for (let i = foods.length - 1; i >= 0; i--) {
+		foods[i].show();
+	}
+	for (const lf of lifeforms) {
+		lf.show();
+	}
+
 	const stats = {};
 	for (const lf of lifeforms) {
 		if (!stats[lf.ancestorId]) {
@@ -214,4 +251,13 @@ function draw() {
 		textSize(32);
 		text('All lifeforms have died!', width / 2, height / 2);
 	}
+}
+
+function draw() {
+	const steps = speedSlider ? int(speedSlider.value) : 1;
+	for (let s = 0; s < steps; s++) {
+		simulationStep();
+		if (lifeforms.length === 0) break;
+	}
+	renderSimulation();
 }
