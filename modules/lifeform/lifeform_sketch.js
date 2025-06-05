@@ -2,6 +2,7 @@
 const BASE_ENERGY = 300; // base energy for a newly created lifeform
 const ENERGY_BONUS_PER_GEN = 10; // extra starting energy per generation
 const CANNIBAL_GEN_THRESHOLD = 3; // generations allowed to eat weaker lifeforms
+const CANNIBAL_GEN_DIFF = 25; // prey must be this many generations older
 const MAX_ENERGY = BASE_ENERGY + 10 * ENERGY_BONUS_PER_GEN; // upper bound for energy
 const NUM_LIFEFORMS = 20;
 const MUTATION_RATE = 0.1; // mutation rate for offspring brains
@@ -16,7 +17,7 @@ const ancestorColors = {};
 let lifeforms = [];
 let foods = [];
 let spawnCounter = 0;
-let foodSpawnInterval = 60; // spawn food every 60 frames
+let foodSpawnInterval = 60; // spawn food roughly every 60 frames (random)
 const FOOD_PER_SPAWN = 3; // number of food items spawned each interval
 let speedSlider; // DOM slider to control simulation speed
 
@@ -102,6 +103,7 @@ class Lifeform {
 		noStroke();
 		textAlign(CENTER, CENTER);
 		textSize(10);
+                text(int(this.energy), this.pos.x, this.pos.y - this.size - 10);
 		text('g' + this.generation, this.pos.x, this.pos.y - this.size);
 		pop();
 	}
@@ -111,13 +113,21 @@ class Lifeform {
                 if (d < (this.size + food.size) / 2) {
                         this.energy = startingEnergy(this.generation);
                         const r = min(red(this.baseColor) + 60, 255);
-			const g = min(green(this.baseColor) + 60, 255);
-			const b = min(blue(this.baseColor) + 60, 255);
-			this.col = color(r, g, b);
-			const childBrain = this.brain.copy();
-			childBrain.mutate(MUTATION_RATE);
-			const child = new Lifeform(childBrain, this.pos, this.angle, this.generation + 1, this.ancestorId);
-                        lifeforms.push(child);
+                        const g = min(green(this.baseColor) + 60, 255);
+                        const b = min(blue(this.baseColor) + 60, 255);
+                        this.col = color(r, g, b);
+                        if (this.energy > startingEnergy(this.generation) / 2) {
+                                const childBrain = this.brain.copy();
+                                childBrain.mutate(MUTATION_RATE);
+                                const child = new Lifeform(
+                                        childBrain,
+                                        this.pos,
+                                        this.angle,
+                                        this.generation + 1,
+                                        this.ancestorId,
+                                );
+                                lifeforms.push(child);
+                        }
                         return true;
                 }
                 return false;
@@ -126,7 +136,8 @@ class Lifeform {
         cannibalize(other) {
                 if (
                         this.generation >= CANNIBAL_GEN_THRESHOLD &&
-                        (this.generation > other.generation || this.energy > other.energy)
+                        other.generation <= this.generation - CANNIBAL_GEN_DIFF &&
+                        other.size < this.size
                 ) {
                         const d = dist(this.pos.x, this.pos.y, other.pos.x, other.pos.y);
                         if (d < (this.size + other.size) / 2) {
@@ -134,17 +145,19 @@ class Lifeform {
                                         startingEnergy(this.generation) * 1.5,
                                         this.energy + startingEnergy(this.generation) * 0.5,
                                 );
-                                const childBrain = this.brain.copy();
-                                childBrain.mutate(MUTATION_RATE);
-                                lifeforms.push(
-                                        new Lifeform(
-                                                childBrain,
-                                                this.pos,
-                                                this.angle,
-                                                this.generation + 1,
-                                                this.ancestorId,
-                                        ),
-                                );
+                                if (this.energy > startingEnergy(this.generation) / 2) {
+                                        const childBrain = this.brain.copy();
+                                        childBrain.mutate(MUTATION_RATE);
+                                        lifeforms.push(
+                                                new Lifeform(
+                                                        childBrain,
+                                                        this.pos,
+                                                        this.angle,
+                                                        this.generation + 1,
+                                                        this.ancestorId,
+                                                ),
+                                        );
+                                }
                                 other.dispose();
                                 return true;
                         }
@@ -186,10 +199,12 @@ function setup() {
 function simulationStep() {
         spawnCounter++;
         if (spawnCounter >= foodSpawnInterval) {
-                for (let f = 0; f < FOOD_PER_SPAWN; f++) {
+                const amount = Math.floor(random(1, FOOD_PER_SPAWN * 2 + 1));
+                for (let f = 0; f < amount; f++) {
                         foods.push(new Food());
                 }
                 spawnCounter = 0;
+                foodSpawnInterval = int(random(40, 80));
         }
 
         for (let i = foods.length - 1; i >= 0; i--) {
