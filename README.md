@@ -8,12 +8,17 @@ generations through random mutations of their brains.
 Features:
 
 - Energy increases slightly with each generation making offspring stronger.
+- Energy drains faster the quicker a lifeform moves and only slowly while it
+  sits idle.
+- Lifeform size grows and shrinks with the amount of energy it currently has.
 - Starting from generation 3, lifeforms can consume weaker lifeforms for a
-  larger energy boost and an additional offspring.
-- Cannibalism only targets lifeforms at least 25 generations older and
-  smaller in size.
-- Lifeforms reproduce only when they have more than half of their available
+  larger energy boost and an additional offspring, but prey must be at least 10
+  generations behind and the predator must have more than half of the prey's
   energy.
+- Lifeforms reproduce only when they have more than half of their birth
+  energy.
+- A deeper neural network with generation as an extra input guides movement,
+  making higher generations a bit smarter.
 - Each lifeform displays its current energy level above its body.
 - Food spawns in random amounts and intervals to vary resource availability.
 - A lineage tracker displays the population count and highest generation for

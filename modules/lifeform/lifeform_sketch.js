@@ -2,15 +2,20 @@
 const BASE_ENERGY = 300; // base energy for a newly created lifeform
 const ENERGY_BONUS_PER_GEN = 10; // extra starting energy per generation
 const CANNIBAL_GEN_THRESHOLD = 3; // generations allowed to eat weaker lifeforms
-const CANNIBAL_GEN_DIFF = 25; // prey must be this many generations older
+const CANNIBAL_GEN_DIFF = 10; // prey must be this many generations older
+const BASE_SIZE = 12; // minimum size of a lifeform
+const SIZE_GAIN = 10; // size gained when at full energy
+const IDLE_DECAY = 0.2; // energy lost even when idle
+const SPEED_DECAY_FACTOR = 0.8; // extra energy lost per unit of speed
 const MAX_ENERGY = BASE_ENERGY + 10 * ENERGY_BONUS_PER_GEN; // upper bound for energy
 const NUM_LIFEFORMS = 20;
 const MUTATION_RATE = 0.1; // mutation rate for offspring brains
 const MAX_SPEED = 2.5; // maximum movement speed
+const HIDDEN_NODES = 12; // number of neurons in the first hidden layer
 // inputs: normalized food vector (dx, dy), current speed, angle difference
-// to the closest food, normalized distance, current energy level, and
-// heading orientation (cos(angle), sin(angle))
-const NN_INPUTS = 8; // number of inputs for the neural network
+// to the closest food, normalized distance, current energy level, generation
+// number, and heading orientation (cos(angle), sin(angle))
+const NN_INPUTS = 9; // number of inputs for the neural network
 let nextAncestorId = 1;
 const ancestorGenerations = {};
 const ancestorColors = {};
@@ -30,8 +35,10 @@ class Lifeform {
                 this.pos = pos ? pos.copy() : createVector(random(width), random(height));
                 this.angle = angle !== undefined ? angle : random(TWO_PI);
                 this.speed = random(MAX_SPEED);
-                this.size = 18;
                 this.energy = startingEnergy(generation);
+                this.birthEnergy = this.energy;
+                const energyRatio = this.energy / BASE_ENERGY;
+                this.size = BASE_SIZE + SIZE_GAIN * energyRatio;
                 this.generation = generation;
 		this.ancestorId = ancestorId !== undefined ? ancestorId : nextAncestorId++;
 		if (!ancestorGenerations[this.ancestorId] || ancestorGenerations[this.ancestorId] < this.generation) {
@@ -41,8 +48,8 @@ class Lifeform {
 			ancestorColors[this.ancestorId] = color(random(60, 255), random(60, 255), random(60, 255));
 		}
 		this.baseColor = ancestorColors[this.ancestorId];
-		this.col = this.baseColor;
-		this.brain = brain ? brain.copy() : new NeuralNetwork(NN_INPUTS, 8, 2);
+                this.col = this.baseColor;
+                this.brain = brain ? brain.copy() : new NeuralNetwork(NN_INPUTS, HIDDEN_NODES, 2);
 	}
 
 	findClosestFoodVector() {
@@ -67,9 +74,10 @@ class Lifeform {
 		let angleDiff = dir.heading() - this.angle;
 		while (angleDiff > PI) angleDiff -= TWO_PI;
 		while (angleDiff < -PI) angleDiff += TWO_PI;
-		const speedNorm = this.speed / MAX_SPEED;
-		const energyNorm = this.energy / MAX_ENERGY;
-		const inputs = [dxNorm, dyNorm, speedNorm, angleDiff / PI, distNorm, energyNorm, Math.cos(this.angle), Math.sin(this.angle)];
+                const speedNorm = this.speed / MAX_SPEED;
+                const energyNorm = this.energy / MAX_ENERGY;
+                const generationNorm = this.generation / 20;
+                const inputs = [dxNorm, dyNorm, speedNorm, angleDiff / PI, distNorm, energyNorm, generationNorm, Math.cos(this.angle), Math.sin(this.angle)];
 		const [oTurn, oAccel] = this.brain.predict(inputs);
 		const turn = map(oTurn, -1, 1, -0.3, 0.3);
 		const accel = map(oAccel, -1, 1, -0.05, 0.05);
@@ -82,7 +90,9 @@ class Lifeform {
 		if (this.pos.x > width) this.pos.x = 0;
 		if (this.pos.y < 0) this.pos.y = height;
 		if (this.pos.y > height) this.pos.y = 0;
-		this.energy--;
+                this.energy -= IDLE_DECAY + this.speed * SPEED_DECAY_FACTOR;
+                const sizeRatio = this.energy / this.birthEnergy;
+                this.size = BASE_SIZE + SIZE_GAIN * sizeRatio;
 	}
 
 	show() {
@@ -135,9 +145,8 @@ class Lifeform {
 
         cannibalize(other) {
                 if (
-                        this.generation >= CANNIBAL_GEN_THRESHOLD &&
-                        other.generation <= this.generation - CANNIBAL_GEN_DIFF &&
-                        other.size < this.size
+                        this.generation - other.generation >= CANNIBAL_GEN_DIFF &&
+                        this.energy > other.energy / 2
                 ) {
                         const d = dist(this.pos.x, this.pos.y, other.pos.x, other.pos.y);
                         if (d < (this.size + other.size) / 2) {

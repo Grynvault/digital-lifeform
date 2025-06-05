@@ -69,24 +69,34 @@ class NeuralNetwork {
 		});
 	}
 
-	createModel() {
-		const model = tf.sequential();
-		const hidden1 = tf.layers.dense({
-			units: this.hidden_nodes,
-			inputShape: [this.input_nodes],
-			activation: 'relu',
-		});
-		model.add(hidden1);
-		const hidden2 = tf.layers.dense({
-			units: Math.max(2, Math.floor(this.hidden_nodes / 2)),
-			activation: 'relu',
-		});
-		model.add(hidden2);
-		const output = tf.layers.dense({
-			units: this.output_nodes,
-			activation: 'tanh',
-		});
-		model.add(output);
-		return model;
-	}
+        createModel() {
+                const model = tf.sequential();
+
+                const hidden1 = tf.layers.dense({
+                        units: this.hidden_nodes,
+                        inputShape: [this.input_nodes],
+                        activation: 'relu',
+                });
+                model.add(hidden1);
+
+                const hidden2 = tf.layers.dense({
+                        units: Math.max(4, Math.floor(this.hidden_nodes * 0.75)),
+                        activation: 'relu',
+                });
+                model.add(hidden2);
+
+                const hidden3 = tf.layers.dense({
+                        units: Math.max(2, Math.floor(this.hidden_nodes / 2)),
+                        activation: 'relu',
+                });
+                model.add(hidden3);
+
+                const output = tf.layers.dense({
+                        units: this.output_nodes,
+                        activation: 'tanh',
+                });
+                model.add(output);
+
+                return model;
+        }
 }
