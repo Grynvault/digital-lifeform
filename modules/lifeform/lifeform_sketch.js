@@ -28,6 +28,8 @@ let spawnCounter = 0;
 let foodSpawnInterval = 60; // spawn food roughly every 60 frames (random)
 const FOOD_PER_SPAWN = 3; // number of food items spawned each interval
 let speedSlider; // DOM slider to control simulation speed
+let pauseBtn; // button to pause/resume the simulation
+let paused = false;
 let simTime = 0; // number of simulation steps elapsed
 
 function startingEnergy(gen) {
@@ -262,6 +264,19 @@ function setup() {
 	const canv = createCanvas(WIDTH, HEIGHT);
 	canv.parent('lifeform-sketch');
 	speedSlider = document.getElementById('speed-slider');
+	pauseBtn = document.getElementById('pause-btn');
+	if (pauseBtn) {
+		pauseBtn.addEventListener('click', () => {
+			if (paused) {
+				loop();
+				pauseBtn.textContent = 'Pause';
+			} else {
+				noLoop();
+				pauseBtn.textContent = 'Play';
+			}
+			paused = !paused;
+		});
+	}
 	for (let i = 0; i < NUM_LIFEFORMS; i++) {
 		lifeforms.push(new Lifeform());
 	}
