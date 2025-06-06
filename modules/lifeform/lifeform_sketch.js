@@ -11,8 +11,8 @@ const IDLE_DECAY = 0.05; // energy lost even when idle
 const SPEED_DECAY_FACTOR = 0.5; // extra energy lost per unit of speed
 const MAX_ENERGY = BASE_ENERGY + 2000 * ENERGY_BONUS_PER_GEN; // upper bound for energy
 const MAX_DIST = Math.hypot(WIDTH, HEIGHT);
-const NUM_LIFEFORMS = 100;
-const MUTATION_RATE = 0.09; // mutation rate for offspring brains
+const NUM_LIFEFORMS = 1;
+const MUTATION_RATE = 0.0; // mutation rate for offspring brains
 const MAX_SPEED = 2.5; // maximum movement speed
 const HIDDEN_NODES = 12; // number of neurons in the first hidden layer
 // inputs: normalized food vector (dx, dy), current speed, angle difference
@@ -53,7 +53,7 @@ class Lifeform {
 		if (!ancestorColors[this.ancestorId]) {
 			ancestorColors[this.ancestorId] = color(random(60, 255), random(60, 255), random(60, 255));
 		}
-		this.baseColor = 'black';
+		this.baseColor = ancestorColors[this.ancestorId];
 		this.col = this.baseColor;
 		this.brain = brain ? brain.copy() : new NeuralNetwork(NN_INPUTS, HIDDEN_NODES, 2);
 		this.feature = brain ? brain.feature() : [0, 0, 0, 0, 0, 0, 0, 0];
@@ -118,8 +118,8 @@ class Lifeform {
 		const xOff = -halfSize;
 		const yOff = -halfSize;
 		drawCreatureP5(this.feature, xOff, yOff, creatureSize);
-		//
 		pop();
+		// display generation number above the lifeform
 		// display generation number above the lifeform
 		push();
 		fill(this.baseColor);
@@ -130,10 +130,10 @@ class Lifeform {
 		// draw a red heart, then the energy number
 		fill(255, 0, 0); // make the heart red
 		text('♥ ' + int(this.energy), this.pos.x, this.pos.y - this.size - 10);
-		textSize(6);
+		textSize(7);
 		// reset fill before drawing the generation text
 		fill('black');
-		text('Gen ' + this.generation, this.pos.x, this.pos.y - this.size);
+		text('#' + this.ancestorId + ' G' + this.generation, this.pos.x, this.pos.y - this.size);
 
 		pop();
 	}
@@ -375,14 +375,17 @@ function renderSimulation() {
 	const stats = {};
 	for (const lf of lifeforms) {
 		if (!stats[lf.ancestorId]) {
-			stats[lf.ancestorId] = { count: 0 };
+			stats[lf.ancestorId] = { count: 0, best: lf };
 		}
 		stats[lf.ancestorId].count++;
+		if (lf.generation > stats[lf.ancestorId].best.generation) {
+			stats[lf.ancestorId].best = lf;
+		}
 	}
 
 	fill(25);
 	noStroke();
-	textAlign(LEFT, TOP);
+
 	textSize(14);
 	let y = 10;
 	// Display elapsed time in the top-right corner
@@ -390,34 +393,50 @@ function renderSimulation() {
 	text(simTime.toLocaleString() + ' 🕒', WIDTH - 10, y);
 	y += 20;
 	text(lifeforms.length + '🪼', WIDTH - 10, y);
+	y += 20;
+
+	const sorted = Object.entries(stats).sort((a, b) => b[1].count - a[1].count);
+	for (const [aid, data] of sorted) {
+		const previewSize = 30;
+		push();
+		translate(WIDTH - previewSize - 10, y + previewSize / 2);
+		drawCreatureP5(data.best.feature, 0, -previewSize / 2, previewSize);
+		pop();
+		fill(ancestorColors[aid]);
+		rect(WIDTH - previewSize - 15, y + 2, 8, 8);
+		fill(25);
+		textAlign(RIGHT, TOP);
+		text(`#${aid} (${data.count})`, WIDTH - previewSize - 20, y);
+		y += previewSize + 5;
+	}
 	textAlign(LEFT, TOP);
 
 	// Draw portrait of the highest generation lifeform
-	if (lifeforms.length > 0) {
-		let best = lifeforms[0];
-		for (const lf of lifeforms) {
-			if (lf.generation > best.generation) {
-				best = lf;
-			}
-		}
+	// if (lifeforms.length > 0) {
+	// 	let best = lifeforms[0];
+	// 	for (const lf of lifeforms) {
+	// 		if (lf.generation > best.generation) {
+	// 			best = lf;
+	// 		}
+	// 	}
 
-		const previewSize = 60; // height and width of the portrait
-		push();
-		translate(20, y + previewSize / 2);
-		drawCreatureP5(best.feature, 0, -previewSize / 2, previewSize);
-		pop();
-		y += previewSize + 5;
-		textSize(10);
-		text('Generation: ' + best.generation, 15, y);
-		text('DNA0: ' + best.feature[0].toFixed(5), 15, y + 15);
-		text('DNA1: ' + best.feature[1].toFixed(5), 15, y + 30);
-		text('DNA2: ' + best.feature[2].toFixed(5), 15, y + 45);
-		text('DNA3: ' + best.feature[3].toFixed(5), 15, y + 60);
-		text('DNA4: ' + best.feature[4].toFixed(5), 15, y + 75);
-		text('DNA5: ' + best.feature[5].toFixed(5), 15, y + 90);
-		text('DNA6: ' + best.feature[6].toFixed(5), 15, y + 105);
-		text('DNA7: ' + best.feature[7].toFixed(5), 15, y + 120);
-	}
+	// 	const previewSize = 60; // height and width of the portrait
+	// 	push();
+	// 	translate(20, y + previewSize / 2);
+	// 	drawCreatureP5(best.feature, 0, -previewSize / 2, previewSize);
+	// 	pop();
+	// 	y += previewSize + 5;
+	// 	textSize(10);
+	// 	text('Generation: ' + best.generation, 15, y);
+	// 	text('DNA0: ' + best.feature[0].toFixed(5), 15, y + 15);
+	// 	text('DNA1: ' + best.feature[1].toFixed(5), 15, y + 30);
+	// 	text('DNA2: ' + best.feature[2].toFixed(5), 15, y + 45);
+	// 	text('DNA3: ' + best.feature[3].toFixed(5), 15, y + 60);
+	// 	text('DNA4: ' + best.feature[4].toFixed(5), 15, y + 75);
+	// 	text('DNA5: ' + best.feature[5].toFixed(5), 15, y + 90);
+	// 	text('DNA6: ' + best.feature[6].toFixed(5), 15, y + 105);
+	// 	text('DNA7: ' + best.feature[7].toFixed(5), 15, y + 120);
+	// }
 
 	if (lifeforms.length === 0) {
 		noLoop();
