@@ -5,20 +5,30 @@
 	<head>
 		<meta charset="UTF-8" />
 		<title>Digital Lifeform</title>
-                <script src="https://cdn.jsdelivr.net/npm/p5@1.6.0/lib/p5.min.js" defer></script>
-                <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.14.0/dist/tf.min.js" defer></script>
-                <script src="modules/nn.js" defer></script>
+		<script
+			src="https://cdn.jsdelivr.net/npm/p5@1.6.0/lib/p5.min.js"
+			defer></script>
+		<script
+			src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.14.0/dist/tf.min.js"
+			defer></script>
+		<script
+			src="modules/nn.js"
+			defer></script>
 	</head>
 	<body>
-                <label for="speed-slider">Simulation Speed:</label>
-                <input
-                        type="range"
-                        id="speed-slider"
-                        min="1"
-                        max="5"
-                        value="1"
-                />
-                <div id="lifeform-sketch"></div>
-                <script src="modules/lifeform/lifeform_sketch.js" defer></script>
-        </body>
+		<!-- <label for="speed-slider">Simulation Speed:</label>
+		<input
+			type="range"
+			id="speed-slider"
+			min="1"
+			max="5"
+			value="1" /> -->
+		<div id="lifeform-sketch"></div>
+		<script
+			src="modules/lifeform/lifeform_creation.js"
+			defer></script>
+		<script
+			src="modules/lifeform/lifeform_sketch.js"
+			defer></script>
+	</body>
 </html>
