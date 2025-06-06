@@ -27,11 +27,26 @@
 			id="controls"
 			style="display: flex; align-items: flex-start">
 			<div id="lifeform-sketch"></div>
-			<button
-				id="pause-btn"
-				style="margin-left: 10px">
-				Pause
-			</button>
+			<div
+				id="button-bar"
+				style="display: flex; flex-direction: column; margin-left: 10px">
+				<button id="pause-btn">Pause</button>
+				<button
+					id="download-btn"
+					style="margin-top: 5px">
+					Download DNA
+				</button>
+				<input
+					type="file"
+					id="upload-model"
+					multiple
+					style="margin-top: 5px" />
+				<button
+					id="load-btn"
+					style="margin-top: 5px">
+					Load DNA
+				</button>
+			</div>
 		</div>
 		<script
 			src="modules/lifeform/lifeform_creation.js"

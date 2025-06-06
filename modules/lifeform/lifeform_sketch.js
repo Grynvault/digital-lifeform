@@ -1,5 +1,5 @@
 /** @format */
-const WIDTH = 980;
+const WIDTH = 800;
 const HEIGHT = 700;
 const BASE_ENERGY = 300; // base energy for a newly created lifeform
 const ENERGY_BONUS_PER_GEN = 2; // extra starting energy per generation
@@ -260,11 +260,25 @@ class Food {
 	}
 }
 
+function getBestLifeform() {
+	if (lifeforms.length === 0) return null;
+	let best = lifeforms[0];
+	for (const lf of lifeforms) {
+		if (lf.generation > best.generation) {
+			best = lf;
+		}
+	}
+	return best;
+}
+
 function setup() {
 	const canv = createCanvas(WIDTH, HEIGHT);
 	canv.parent('lifeform-sketch');
 	speedSlider = document.getElementById('speed-slider');
 	pauseBtn = document.getElementById('pause-btn');
+	downloadBtn = document.getElementById('download-btn');
+	loadBtn = document.getElementById('load-btn');
+	uploadInput = document.getElementById('upload-model');
 	if (pauseBtn) {
 		pauseBtn.addEventListener('click', () => {
 			if (paused) {
@@ -275,6 +289,29 @@ function setup() {
 				pauseBtn.textContent = 'Play';
 			}
 			paused = !paused;
+		});
+	}
+	if (downloadBtn) {
+		downloadBtn.addEventListener('click', async () => {
+			const best = getBestLifeform();
+			if (best) {
+				await best.brain.model.save('downloads://best-lifeform');
+			}
+		});
+	}
+	if (loadBtn && uploadInput) {
+		loadBtn.addEventListener('click', async () => {
+			const files = uploadInput.files;
+			if (files.length === 2) {
+				const model = await tf.loadLayersModel(tf.io.browserFiles([files[0], files[1]]));
+				const nn = new NeuralNetwork(NN_INPUTS, HIDDEN_NODES, 2);
+				nn.model.setWeights(model.getWeights());
+				lifeforms.push(new Lifeform(nn));
+
+				// uploadInput.value = '';
+			} else {
+				alert('Please select both model.json and weight files');
+			}
 		});
 	}
 	for (let i = 0; i < NUM_LIFEFORMS; i++) {
