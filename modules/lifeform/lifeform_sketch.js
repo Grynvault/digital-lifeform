@@ -28,6 +28,7 @@ let spawnCounter = 0;
 let foodSpawnInterval = 60; // spawn food roughly every 60 frames (random)
 const FOOD_PER_SPAWN = 3; // number of food items spawned each interval
 let speedSlider; // DOM slider to control simulation speed
+let simTime = 0; // number of simulation steps elapsed
 
 function startingEnergy(gen) {
 	return Math.min(MAX_ENERGY, BASE_ENERGY + ENERGY_BONUS_PER_GEN * (gen - 1));
@@ -268,6 +269,7 @@ function setup() {
 
 function simulationStep() {
 	spawnCounter++;
+	simTime++;
 	if (spawnCounter >= foodSpawnInterval) {
 		const amount = Math.floor(random(1, FOOD_PER_SPAWN * 2 + 1));
 		for (let f = 0; f < amount; f++) {
@@ -327,13 +329,44 @@ function renderSimulation() {
 		stats[lf.ancestorId].count++;
 	}
 
-	fill(255);
+	fill(25);
 	noStroke();
 	textAlign(LEFT, TOP);
 	textSize(14);
 	let y = 10;
-	text('Population: ' + lifeforms.length, 10, y);
-	y += 16;
+	// Display elapsed time in the top-right corner
+	textAlign(RIGHT, TOP);
+	text(simTime.toLocaleString() + ' 🕒', WIDTH - 10, y);
+	y += 20;
+	text(lifeforms.length + '🪼', WIDTH - 10, y);
+	textAlign(LEFT, TOP);
+
+	// Draw portrait of the highest generation lifeform
+	if (lifeforms.length > 0) {
+		let best = lifeforms[0];
+		for (const lf of lifeforms) {
+			if (lf.generation > best.generation) {
+				best = lf;
+			}
+		}
+
+		const previewSize = 60; // height and width of the portrait
+		push();
+		translate(20, y + previewSize / 2);
+		drawCreatureP5(best.feature, 0, -previewSize / 2, previewSize);
+		pop();
+		y += previewSize + 5;
+		textSize(10);
+		text('Generation: ' + best.generation, 15, y);
+		text('DNA0: ' + best.feature[0].toFixed(5), 15, y + 15);
+		text('DNA1: ' + best.feature[1].toFixed(5), 15, y + 30);
+		text('DNA2: ' + best.feature[2].toFixed(5), 15, y + 45);
+		text('DNA3: ' + best.feature[3].toFixed(5), 15, y + 60);
+		text('DNA4: ' + best.feature[4].toFixed(5), 15, y + 75);
+		text('DNA5: ' + best.feature[5].toFixed(5), 15, y + 90);
+		text('DNA6: ' + best.feature[6].toFixed(5), 15, y + 105);
+		text('DNA7: ' + best.feature[7].toFixed(5), 15, y + 120);
+	}
 
 	if (lifeforms.length === 0) {
 		noLoop();
