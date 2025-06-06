@@ -2,7 +2,7 @@
 const WIDTH = 800;
 const HEIGHT = 700;
 const BASE_ENERGY = 300; // base energy for a newly created lifeform
-const ENERGY_BONUS_PER_GEN = 2; // extra starting energy per generation
+const ENERGY_BONUS_PER_GEN = 0; // extra starting energy per generation
 const CANNIBAL_GEN_THRESHOLD = 3; // generations allowed to eat weaker lifeforms
 const CANNIBAL_GEN_DIFF = 5; // prey must be this many generations older
 const BASE_SIZE = 12; // minimum size of a lifeform
@@ -12,13 +12,13 @@ const SPEED_DECAY_FACTOR = 0.5; // extra energy lost per unit of speed
 const MAX_ENERGY = BASE_ENERGY + 2000 * ENERGY_BONUS_PER_GEN; // upper bound for energy
 const MAX_DIST = Math.hypot(WIDTH, HEIGHT);
 const NUM_LIFEFORMS = 100;
-const MUTATION_RATE = 0.3; // mutation rate for offspring brains
+const MUTATION_RATE = 0.09; // mutation rate for offspring brains
 const MAX_SPEED = 2.5; // maximum movement speed
 const HIDDEN_NODES = 12; // number of neurons in the first hidden layer
 // inputs: normalized food vector (dx, dy), current speed, angle difference
 // to the closest food, normalized distance, current energy level, generation
 // number, and heading orientation (cos(angle), sin(angle))
-const NN_INPUTS = 9; // number of inputs for the neural network
+const NN_INPUTS = 8; // number of inputs for the neural network
 let nextAncestorId = 1;
 const ancestorGenerations = {};
 const ancestorColors = {};
@@ -89,8 +89,7 @@ class Lifeform {
 		while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
 		const speedNorm = this.speed / MAX_SPEED;
 		const energyNorm = this.energy / MAX_ENERGY;
-		const generationNorm = this.generation / 20;
-		const inputs = [dxNorm, dyNorm, speedNorm, angleDiff / PI, distNorm, energyNorm, generationNorm, Math.cos(this.angle), Math.sin(this.angle)];
+		const inputs = [dxNorm, dyNorm, speedNorm, angleDiff / PI, distNorm, energyNorm, Math.cos(this.angle), Math.sin(this.angle)];
 		const [oTurn, oAccel] = this.brain.predict(inputs);
 		const turn = map(oTurn, -1, 1, -0.3, 0.3);
 		const accel = map(oAccel, -1, 1, -0.05, 0.05);
